@@ -1,17 +1,48 @@
-use std::{env, fs::{File, OpenOptions}, io};
+use std::{fs::{File, OpenOptions}, io};
+use clap::{ArgGroup, Parser};
 
-fn main() {
-    let mut args = env::args(); 
-    args.next();
+#[derive(Parser)]
+#[command(author, version, about, long_about = None)]
+#[command(group(
+            ArgGroup::new("actions")
+                .required(false)
+                .args(["backup", "restore", "swap"]),
+            ))]
+struct Cli {
+   #[arg(short, long)]
+    backup: bool,
+
+    #[arg(short, long)]
+    restore: bool,
+
+    #[arg(short, long)]
+    swap: bool,
+
+    file: String,
+}
+
+fn backup_file(path: &str) {
     
-    let file_path = args.next().expect("The user has to supply a path to a file");
-
-    let mut file = File::open(&file_path).expect("File exists");
+    let mut file = File::open(path).expect("File exists");
 
     let mut backup = OpenOptions::new()
                     .write(true)
                     .create(true)
-                    .open(file_path + ".backup").expect("Able to write file");
+                    .open(path.to_owned() + ".backup").expect("Able to write file");
 
    io::copy(&mut file, &mut backup).expect("Able to copy file to backup");
+}
+
+fn main() {
+    let cli = Cli::parse();
+    
+    let path = cli.file;
+    let (backup, restore, swap) = (cli.backup, cli.restore, cli.swap);
+
+    match (backup, restore, swap) {
+        (true, _, _) => backup_file(&path),
+        (_, true, _) => todo!(),
+        (_, _, true) => todo!(),
+        _ => backup_file(&path),
+    };
 }
